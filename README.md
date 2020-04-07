@@ -16,3 +16,5 @@ Add PWM input capture with PDMA interrupt sample code for M031
 - press digit 1 , to increase duty 10% , digit 2 , to decrease duty 10%
 
 - press digit 3 , to increase freq 10 , digit 4 , to decrease freq 10
+
+![image](https://github.com/released/M031BSP_PWM_CAP/blob/master/terminal.jpg)
