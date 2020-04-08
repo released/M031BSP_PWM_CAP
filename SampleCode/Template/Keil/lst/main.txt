@@ -12,146 +12,154 @@
                   CalPeriodTime PROC
 ;;;34     
 ;;;35     void CalPeriodTime(PWM_T *PWM, uint32_t u32Ch)
-000000  b57c              PUSH     {r2-r6,lr}
+000000  b5f0              PUSH     {r4-r7,lr}
 ;;;36     {
 ;;;37         uint16_t u16RisingTime, u16FallingTime, u16HighPeriod, u16LowPeriod, u16TotalPeriod;
 ;;;38     
 ;;;39         g_u32IsTestOver = 0;
-000002  480c              LDR      r0,|L1.52|
-000004  2100              MOVS     r1,#0
-000006  6081              STR      r1,[r0,#8]  ; g_u32IsTestOver
-                  |L1.8|
-;;;40         /* Wait PDMA interrupt (g_u32IsTestOver will be set at IRQ_Handler function) */
-;;;41         while(g_u32IsTestOver == 0);
-000008  6881              LDR      r1,[r0,#8]  ; g_u32IsTestOver
-00000a  2900              CMP      r1,#0
-00000c  d0fc              BEQ      |L1.8|
-;;;42     
-;;;43         u16RisingTime = g_au16Count[1];
-00000e  4809              LDR      r0,|L1.52|
-;;;44     
-;;;45         u16FallingTime = g_au16Count[0];
-;;;46     
-;;;47         u16HighPeriod = g_au16Count[1] - g_au16Count[2];
-;;;48     
-;;;49         u16LowPeriod = 0x10000 - g_au16Count[1];
-000010  2501              MOVS     r5,#1
-000012  300c              ADDS     r0,r0,#0xc            ;43
-000014  8841              LDRH     r1,[r0,#2]            ;43  ; g_au16Count
-000016  8802              LDRH     r2,[r0,#0]            ;45  ; g_au16Count
-000018  8880              LDRH     r0,[r0,#4]            ;47  ; g_au16Count
-00001a  042d              LSLS     r5,r5,#16
-00001c  1a0b              SUBS     r3,r1,r0              ;47
-;;;50     
-;;;51         u16TotalPeriod = 0x10000 - g_au16Count[2];
-00001e  1a28              SUBS     r0,r5,r0
-000020  1a6c              SUBS     r4,r5,r1              ;49
-000022  b280              UXTH     r0,r0
-000024  b2a4              UXTH     r4,r4                 ;49
-;;;52     
-;;;53         printf("Capture : Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total=%5d.\r\n",
-000026  9001              STR      r0,[sp,#4]
-000028  b29b              UXTH     r3,r3                 ;47
-00002a  9400              STR      r4,[sp,#0]
-00002c  a002              ADR      r0,|L1.56|
-00002e  f7fffffe          BL       __2printf
-;;;54                u16RisingTime, 
-;;;55                u16FallingTime, 
-;;;56                u16HighPeriod, 
-;;;57                u16LowPeriod, 
-;;;58                u16TotalPeriod);
-;;;59     
-;;;60     }
-000032  bd7c              POP      {r2-r6,pc}
-;;;61     
+000002  4816              LDR      r0,|L1.92|
+000004  b085              SUB      sp,sp,#0x14           ;36
+000006  2100              MOVS     r1,#0
+000008  6041              STR      r1,[r0,#4]  ; g_u32IsTestOver
+                  |L1.10|
+;;;40     	
+;;;41         /* Wait PDMA interrupt (g_u32IsTestOver will be set at IRQ_Handler function) */
+;;;42         while(g_u32IsTestOver == 0);
+00000a  6841              LDR      r1,[r0,#4]  ; g_u32IsTestOver
+00000c  2900              CMP      r1,#0
+00000e  d0fc              BEQ      |L1.10|
+;;;43     		 
+;;;44         u16RisingTime = g_au16Count[1];
+000010  4812              LDR      r0,|L1.92|
+000012  300c              ADDS     r0,r0,#0xc
+000014  8845              LDRH     r5,[r0,#2]  ; g_au16Count
+;;;45     
+;;;46         u16FallingTime = g_au16Count[0];
+000016  8801              LDRH     r1,[r0,#0]  ; g_au16Count
+;;;47     
+;;;48         u16HighPeriod = g_au16Count[1] - g_au16Count[2] + 1;
+000018  9104              STR      r1,[sp,#0x10]
+00001a  8882              LDRH     r2,[r0,#4]  ; g_au16Count
+00001c  1aa8              SUBS     r0,r5,r2
+00001e  1c40              ADDS     r0,r0,#1
+000020  b284              UXTH     r4,r0
+;;;49     
+;;;50         u16LowPeriod = 0xFFFF - g_au16Count[1];
+000022  480f              LDR      r0,|L1.96|
+000024  1b46              SUBS     r6,r0,r5
+;;;51     
+;;;52         u16TotalPeriod = 0xFFFF - g_au16Count[2] + 1;
+000026  1c40              ADDS     r0,r0,#1
+000028  1a80              SUBS     r0,r0,r2
+00002a  b287              UXTH     r7,r0
+;;;53     
+;;;54         printf("Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total=%5d,Freq=%5d,Duty=%3d.\r\n",
+00002c  2064              MOVS     r0,#0x64
+00002e  4360              MULS     r0,r4,r0
+000030  4639              MOV      r1,r7
+000032  f7fffffe          BL       __aeabi_uidivmod
+000036  9000              STR      r0,[sp,#0]
+000038  4639              MOV      r1,r7
+00003a  480a              LDR      r0,|L1.100|
+00003c  f7fffffe          BL       __aeabi_uidivmod
+000040  9900              LDR      r1,[sp,#0]
+000042  9103              STR      r1,[sp,#0xc]
+000044  9002              STR      r0,[sp,#8]
+000046  4623              MOV      r3,r4
+000048  9701              STR      r7,[sp,#4]
+00004a  9600              STR      r6,[sp,#0]
+00004c  4629              MOV      r1,r5
+00004e  4806              LDR      r0,|L1.104|
+000050  9a04              LDR      r2,[sp,#0x10]
+000052  f7fffffe          BL       __2printf
+;;;55                u16RisingTime, 
+;;;56                u16FallingTime, 
+;;;57                u16HighPeriod, 
+;;;58                u16LowPeriod, 
+;;;59                u16TotalPeriod,
+;;;60                SYS_CLOCK/u16TotalPeriod,
+;;;61                u16HighPeriod*100/u16TotalPeriod);
+;;;62     }
+000056  b005              ADD      sp,sp,#0x14
+000058  bdf0              POP      {r4-r7,pc}
+;;;63     
                           ENDP
 
-                  |L1.52|
-                          DCD      ||area_number.18||
-                  |L1.56|
-000038  43617074          DCB      "Capture : Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total"
-00003c  75726520
-000040  3a205269
-000044  73696e67
-000048  3d253564
-00004c  2c46616c
-000050  6c696e67
-000054  3d253564
-000058  2c486967
-00005c  683d2535
-000060  642c4c6f
-000064  773d2535
-000068  642c546f
-00006c  74616c  
-00006f  3d253564          DCB      "=%5d.\r\n",0
-000073  2e0d0a00
-000077  00                DCB      0
+00005a  0000              DCW      0x0000
+                  |L1.92|
+                          DCD      ||area_number.19||
+                  |L1.96|
+                          DCD      0x0000ffff
+                  |L1.100|
+                          DCD      0x02dc6c00
+                  |L1.104|
+                          DCD      ||.conststring||
 
                           AREA ||i.PDMA_IRQHandler||, CODE, READONLY, ALIGN=2
 
                   PDMA_IRQHandler PROC
-;;;138    
-;;;139    void PDMA_IRQHandler(void)
+;;;63     
+;;;64     void PDMA_IRQHandler(void)
 000000  b510              PUSH     {r4,lr}
-;;;140    {
-;;;141        uint32_t status = PDMA_GET_INT_STATUS(PDMA);
+;;;65     {
+;;;66         uint32_t status = PDMA_GET_INT_STATUS(PDMA);
 000002  490d              LDR      r1,|L2.56|
 000004  69c8              LDR      r0,[r1,#0x1c]
-;;;142    
-;;;143        if(status & 0x1)    /* abort */
-;;;144        {
-;;;145            if(PDMA_GET_ABORT_STS(PDMA) & 0x1)
-;;;146            {
-;;;147    			g_u32IsTestOver = 2;
+;;;67     
+;;;68         if(status & 0x1)    /* abort */
+;;;69         {
+;;;70             if(PDMA_GET_ABORT_STS(PDMA) & 0x1)
+;;;71             {
+;;;72     			g_u32IsTestOver = 2;
 000006  4b0d              LDR      r3,|L2.60|
-000008  07c4              LSLS     r4,r0,#31             ;143
-;;;148            }
-;;;149            PDMA_CLR_ABORT_FLAG(PDMA, PDMA_ABTSTS_ABTIF0_Msk);
+000008  07c4              LSLS     r4,r0,#31             ;68
+;;;73             }
+;;;74             PDMA_CLR_ABORT_FLAG(PDMA, PDMA_ABTSTS_ABTIF0_Msk);
 00000a  2201              MOVS     r2,#1
-00000c  2c00              CMP      r4,#0                 ;143
+00000c  2c00              CMP      r4,#0                 ;68
 00000e  d006              BEQ      |L2.30|
-000010  6a08              LDR      r0,[r1,#0x20]         ;145
-000012  07c0              LSLS     r0,r0,#31             ;145
+000010  6a08              LDR      r0,[r1,#0x20]         ;70
+000012  07c0              LSLS     r0,r0,#31             ;70
 000014  d001              BEQ      |L2.26|
-000016  2002              MOVS     r0,#2                 ;147
-000018  6098              STR      r0,[r3,#8]            ;147  ; g_u32IsTestOver
+000016  2002              MOVS     r0,#2                 ;72
+000018  6058              STR      r0,[r3,#4]            ;72  ; g_u32IsTestOver
                   |L2.26|
 00001a  620a              STR      r2,[r1,#0x20]
-;;;150        }
-;;;151        else if(status & 0x2)      /* done */
-;;;152        {
-;;;153            if(PDMA_GET_TD_STS(PDMA) & 0x1)
-;;;154            {
-;;;155    			g_u32IsTestOver = 1;
-;;;156            }
-;;;157            PDMA_CLR_TD_FLAG(PDMA, PDMA_TDSTS_TDIF0_Msk);
-;;;158        }
-;;;159        else
-;;;160            printf("unknown interrupt !!\n");
-;;;161    }
+;;;75         }
+;;;76         else if(status & 0x2)      /* done */
+;;;77         {
+;;;78             if(PDMA_GET_TD_STS(PDMA) & 0x1)
+;;;79             {
+;;;80     			g_u32IsTestOver = 1;
+;;;81             }
+;;;82             PDMA_CLR_TD_FLAG(PDMA, PDMA_TDSTS_TDIF0_Msk);
+;;;83         }
+;;;84         else
+;;;85             printf("unknown interrupt !!\n");
+;;;86     }
 00001c  bd10              POP      {r4,pc}
                   |L2.30|
-00001e  0780              LSLS     r0,r0,#30             ;151
+00001e  0780              LSLS     r0,r0,#30             ;76
 000020  d505              BPL      |L2.46|
-000022  6a48              LDR      r0,[r1,#0x24]         ;153
-000024  07c0              LSLS     r0,r0,#31             ;153
+000022  6a48              LDR      r0,[r1,#0x24]         ;78
+000024  07c0              LSLS     r0,r0,#31             ;78
 000026  d000              BEQ      |L2.42|
-000028  609a              STR      r2,[r3,#8]            ;155  ; g_u32IsTestOver
+000028  605a              STR      r2,[r3,#4]            ;80  ; g_u32IsTestOver
                   |L2.42|
-00002a  624a              STR      r2,[r1,#0x24]         ;157
+00002a  624a              STR      r2,[r1,#0x24]         ;82
 00002c  bd10              POP      {r4,pc}
                   |L2.46|
 00002e  a004              ADR      r0,|L2.64|
 000030  f7fffffe          BL       __2printf
 000034  bd10              POP      {r4,pc}
-;;;162    
+;;;87     
                           ENDP
 
 000036  0000              DCW      0x0000
                   |L2.56|
                           DCD      0x40008400
                   |L2.60|
-                          DCD      ||area_number.18||
+                          DCD      ||area_number.19||
                   |L2.64|
 000040  756e6b6e          DCB      "unknown interrupt !!\n",0
 000044  6f776e20
@@ -165,27 +173,27 @@
                           AREA ||i.PDMA_Init||, CODE, READONLY, ALIGN=2
 
                   PDMA_Init PROC
-;;;163    
-;;;164    void PDMA_Init(void)
+;;;88     
+;;;89     void PDMA_Init(void)
 000000  b57c              PUSH     {r2-r6,lr}
-;;;165    {
-;;;166        /* Open Channel 0 */
-;;;167        PDMA_Open(PDMA, 0x1);
+;;;90     {
+;;;91         /* Open Channel 0 */
+;;;92         PDMA_Open(PDMA, 0x1);
 000002  4d19              LDR      r5,|L3.104|
 000004  2101              MOVS     r1,#1
 000006  4628              MOV      r0,r5
 000008  f7fffffe          BL       PDMA_Open
-;;;168    
-;;;169        /* Transfer width is half word(16 bit) and transfer count is 4 */
-;;;170        PDMA_SetTransferCnt(PDMA, 0, PDMA_WIDTH_16, 4);
+;;;93     
+;;;94         /* Transfer width is half word(16 bit) and transfer count is 4 */
+;;;95         PDMA_SetTransferCnt(PDMA, 0, PDMA_WIDTH_16, 4);
 00000c  2304              MOVS     r3,#4
 00000e  029a              LSLS     r2,r3,#10
 000010  2100              MOVS     r1,#0
 000012  4628              MOV      r0,r5
 000014  f7fffffe          BL       PDMA_SetTransferCnt
-;;;171    
-;;;172        /* Set source address as PWM capture channel PDMA register(no increment) and destination address as g_au16Count array(increment) */
-;;;173        PDMA_SetTransferAddr(PDMA, 0, (uint32_t)&PWM0->PDMACAP2_3, PDMA_SAR_FIX, (uint32_t)&g_au16Count[0], PDMA_DAR_INC);
+;;;96     
+;;;97         /* Set source address as PWM capture channel PDMA register(no increment) and destination address as g_au16Count array(increment) */
+;;;98         PDMA_SetTransferAddr(PDMA, 0, (uint32_t)&PWM0->PDMACAP2_3, PDMA_SAR_FIX, (uint32_t)&g_au16Count[0], PDMA_DAR_INC);
 000018  2400              MOVS     r4,#0
 00001a  4914              LDR      r1,|L3.108|
 00001c  2303              MOVS     r3,#3
@@ -196,25 +204,25 @@
 000026  4621              MOV      r1,r4
 000028  4628              MOV      r0,r5
 00002a  f7fffffe          BL       PDMA_SetTransferAddr
-;;;174    
-;;;175        /* Select PDMA request source as PWM RX(PWM0 channel 2 should be PWM0 pair 2) */
-;;;176        PDMA_SetTransferMode(PDMA, 0, PDMA_PWM0_P2_RX, FALSE, 0);
+;;;99     
+;;;100        /* Select PDMA request source as PWM RX(PWM0 channel 2 should be PWM0 pair 2) */
+;;;101        PDMA_SetTransferMode(PDMA, 0, PDMA_PWM0_P2_RX, FALSE, 0);
 00002e  2300              MOVS     r3,#0
 000030  2216              MOVS     r2,#0x16
 000032  4619              MOV      r1,r3
 000034  4628              MOV      r0,r5
 000036  9400              STR      r4,[sp,#0]
 000038  f7fffffe          BL       PDMA_SetTransferMode
-;;;177    
-;;;178        /* Set PDMA as single request type for PWM */
-;;;179        PDMA_SetBurstType(PDMA, 0, PDMA_REQ_SINGLE, PDMA_BURST_4);
+;;;102    
+;;;103        /* Set PDMA as single request type for PWM */
+;;;104        PDMA_SetBurstType(PDMA, 0, PDMA_REQ_SINGLE, PDMA_BURST_4);
 00003c  2350              MOVS     r3,#0x50
 00003e  2204              MOVS     r2,#4
 000040  2100              MOVS     r1,#0
 000042  4628              MOV      r0,r5
 000044  f7fffffe          BL       PDMA_SetBurstType
-;;;180    
-;;;181        PDMA_EnableInt(PDMA, 0, PDMA_INT_TRANS_DONE);
+;;;105    
+;;;106        PDMA_EnableInt(PDMA, 0, PDMA_INT_TRANS_DONE);
 000048  2200              MOVS     r2,#0
 00004a  4611              MOV      r1,r2
 00004c  4628              MOV      r0,r5
@@ -222,26 +230,26 @@
 000052  4908              LDR      r1,|L3.116|
 000054  02e8              LSLS     r0,r5,#11
 000056  6008              STR      r0,[r1,#0]
-;;;182        NVIC_EnableIRQ(PDMA_IRQn);
-;;;183    
-;;;184        /* Enable PDMA for PWM0 channel 2 capture function, and set capture order as falling first, */
-;;;185        /* And select capture mode as both rising and falling to do PDMA transfer. */
-;;;186        PWM_EnablePDMA(PWM0, 2, FALSE, PWM_CAPTURE_PDMA_RISING_FALLING_LATCH);
+;;;107        NVIC_EnableIRQ(PDMA_IRQn);
+;;;108    
+;;;109        /* Enable PDMA for PWM0 channel 2 capture function, and set capture order as falling first, */
+;;;110        /* And select capture mode as both rising and falling to do PDMA transfer. */
+;;;111        PWM_EnablePDMA(PWM0, 2, FALSE, PWM_CAPTURE_PDMA_RISING_FALLING_LATCH);
 000058  2306              MOVS     r3,#6
 00005a  2200              MOVS     r2,#0
 00005c  2102              MOVS     r1,#2
 00005e  4806              LDR      r0,|L3.120|
 000060  f7fffffe          BL       PWM_EnablePDMA
-;;;187    }
+;;;112    }
 000064  bd7c              POP      {r2-r6,pc}
-;;;188    
+;;;113    
                           ENDP
 
 000066  0000              DCW      0x0000
                   |L3.104|
                           DCD      0x40008000
                   |L3.108|
-                          DCD      ||area_number.18||+0xc
+                          DCD      ||area_number.19||+0xc
                   |L3.112|
                           DCD      0x40058244
                   |L3.116|
@@ -252,226 +260,204 @@
                           AREA ||i.PWM_Cap_DeInit||, CODE, READONLY, ALIGN=2
 
                   PWM_Cap_DeInit PROC
-;;;88     
-;;;89     void PWM_Cap_DeInit(void)
+;;;141    
+;;;142    void PWM_Cap_DeInit(void)
 000000  b510              PUSH     {r4,lr}
-;;;90     {
-;;;91         /* Set loaded value as 0 for PWM0 channel 2 */
-;;;92         PWM_Stop(PWM0, PWM_CH_2_MASK);
-000002  4c10              LDR      r4,|L4.68|
+;;;143    {
+;;;144        /* Set loaded value as 0 for PWM0 channel 2 */
+;;;145        PWM_Stop(PWM0, PWM_CH_2_MASK);
+000002  4c0f              LDR      r4,|L4.64|
 000004  2104              MOVS     r1,#4
 000006  4620              MOV      r0,r4
 000008  f7fffffe          BL       PWM_Stop
-;;;93     
-;;;94         /* Wait until PWM0 channel 2 current counter reach to 0 */
-;;;95         while((PWM0->CNT[2] & PWM_CNT_CNT_Msk) != 0);
-00000c  490d              LDR      r1,|L4.68|
-00000e  3180              ADDS     r1,r1,#0x80
-                  |L4.16|
-000010  698a              LDR      r2,[r1,#0x18]
-000012  0412              LSLS     r2,r2,#16
-000014  0c12              LSRS     r2,r2,#16
-000016  d1fb              BNE      |L4.16|
-;;;96     
-;;;97         /* Disable Timer for PWM0 channel 2 */
-;;;98         PWM_ForceStop(PWM0, PWM_CH_2_MASK);
-000018  2104              MOVS     r1,#4
-00001a  4620              MOV      r0,r4
-00001c  f7fffffe          BL       PWM_ForceStop
-;;;99     
-;;;100        /* Disable Capture Function and Capture Input path for  PWM0 channel 2*/
-;;;101        PWM_DisableCapture(PWM0, PWM_CH_2_MASK);
-000020  2104              MOVS     r1,#4
-000022  4620              MOV      r0,r4
-000024  f7fffffe          BL       PWM_DisableCapture
-;;;102    
-;;;103        /* Clear Capture Interrupt flag for PWM0 channel 2 */
-;;;104        PWM_ClearCaptureIntFlag(PWM0, 2, PWM_CAPTURE_INT_FALLING_LATCH);
-000028  22ff              MOVS     r2,#0xff
-00002a  3201              ADDS     r2,#1
-00002c  2102              MOVS     r1,#2
-00002e  4620              MOV      r0,r4
-000030  f7fffffe          BL       PWM_ClearCaptureIntFlag
-000034  2001              MOVS     r0,#1
-000036  4904              LDR      r1,|L4.72|
-000038  0680              LSLS     r0,r0,#26
-00003a  6008              STR      r0,[r1,#0]
-;;;105    
-;;;106        /* Disable PDMA NVIC */
-;;;107        NVIC_DisableIRQ(PDMA_IRQn);
-;;;108    
-;;;109        PDMA_Close(PDMA);
-00003c  4803              LDR      r0,|L4.76|
-00003e  f7fffffe          BL       PDMA_Close
-;;;110    }
-000042  bd10              POP      {r4,pc}
-;;;111    
+;;;146    
+;;;147        /* Wait until PWM0 channel 2 current counter reach to 0 */
+;;;148    //    while((PWM0->CNT[2] & PWM_CNT_CNT_Msk) != 0);
+;;;149    
+;;;150        /* Disable Timer for PWM0 channel 2 */
+;;;151        PWM_ForceStop(PWM0, PWM_CH_2_MASK);
+00000c  2104              MOVS     r1,#4
+00000e  4620              MOV      r0,r4
+000010  f7fffffe          BL       PWM_ForceStop
+;;;152    
+;;;153        /* Disable Capture Function and Capture Input path for  PWM0 channel 2*/
+;;;154        PWM_DisableCapture(PWM0, PWM_CH_2_MASK);
+000014  2104              MOVS     r1,#4
+000016  4620              MOV      r0,r4
+000018  f7fffffe          BL       PWM_DisableCapture
+;;;155    
+;;;156        /* Clear Capture Interrupt flag for PWM0 channel 2 */
+;;;157        PWM_ClearCaptureIntFlag(PWM0, 2, PWM_CAPTURE_INT_FALLING_LATCH);
+00001c  15a2              ASRS     r2,r4,#22
+00001e  2102              MOVS     r1,#2
+000020  4620              MOV      r0,r4
+000022  f7fffffe          BL       PWM_ClearCaptureIntFlag
+;;;158    
+;;;159    	PWM_DisablePDMA(PWM0, 2);
+000026  2102              MOVS     r1,#2
+000028  4620              MOV      r0,r4
+00002a  f7fffffe          BL       PWM_DisablePDMA
+00002e  2001              MOVS     r0,#1
+000030  4904              LDR      r1,|L4.68|
+000032  0680              LSLS     r0,r0,#26
+000034  6008              STR      r0,[r1,#0]
+;;;160    
+;;;161        /* Disable PDMA NVIC */
+;;;162        NVIC_DisableIRQ(PDMA_IRQn);
+;;;163    
+;;;164        PDMA_Close(PDMA);
+000036  4804              LDR      r0,|L4.72|
+000038  f7fffffe          BL       PDMA_Close
+;;;165    }
+00003c  bd10              POP      {r4,pc}
+;;;166    
                           ENDP
 
-                  |L4.68|
+00003e  0000              DCW      0x0000
+                  |L4.64|
                           DCD      0x40058000
-                  |L4.72|
+                  |L4.68|
                           DCD      0xe000e180
-                  |L4.76|
+                  |L4.72|
                           DCD      0x40008000
 
                           AREA ||i.PWM_Cap_Init||, CODE, READONLY, ALIGN=2
 
                   PWM_Cap_Init PROC
-;;;111    
-;;;112    void PWM_Cap_Init(void)
+;;;166    
+;;;167    void PWM_Cap_Init(void)
 000000  b510              PUSH     {r4,lr}
-;;;113    {
-;;;114    	PDMA_Init();
-000002  f7fffffe          BL       PDMA_Init
-;;;115    
-;;;116    	/* Set PWM0 channel 2 capture configuration */
-;;;117    	PWM_ConfigCaptureChannel(PWM0, 2, 62, 0);
-000006  4c11              LDR      r4,|L5.76|
-000008  2300              MOVS     r3,#0
-00000a  223e              MOVS     r2,#0x3e
-00000c  2102              MOVS     r1,#2
-00000e  4620              MOV      r0,r4
-000010  f7fffffe          BL       PWM_ConfigCaptureChannel
-;;;118    
-;;;119    	/* Enable Timer for PWM0 channel 2 */
-;;;120    	PWM_Start(PWM0, PWM_CH_2_MASK);
-000014  2104              MOVS     r1,#4
-000016  4620              MOV      r0,r4
-000018  f7fffffe          BL       PWM_Start
-;;;121    
-;;;122    	/* Enable Capture Function for PWM0 channel 2 */
-;;;123    	PWM_EnableCapture(PWM0, PWM_CH_2_MASK);
-00001c  2104              MOVS     r1,#4
-00001e  4620              MOV      r0,r4
-000020  f7fffffe          BL       PWM_EnableCapture
-;;;124    
-;;;125    	/* Enable falling capture reload */
-;;;126    	PWM0->CAPCTL |= PWM_CAPCTL_FCRLDEN2_Msk;
-000024  480a              LDR      r0,|L5.80|
-000026  6841              LDR      r1,[r0,#4]
-000028  0442              LSLS     r2,r0,#17
-00002a  4311              ORRS     r1,r1,r2
-00002c  6041              STR      r1,[r0,#4]
-;;;127    
-;;;128    	/* Wait until PWM0 channel 2 Timer start to count */
-;;;129    	while((PWM0->CNT[2]) == 0);
-00002e  4907              LDR      r1,|L5.76|
-000030  3180              ADDS     r1,r1,#0x80
-                  |L5.50|
-000032  698a              LDR      r2,[r1,#0x18]
-000034  2a00              CMP      r2,#0
-000036  d0fc              BEQ      |L5.50|
-;;;130    
-;;;131    	/* Capture the Input Waveform Data */
-;;;132    	CalPeriodTime(PWM0, 2);
-000038  2102              MOVS     r1,#2
-00003a  4620              MOV      r0,r4
-00003c  f7fffffe          BL       CalPeriodTime
-;;;133    
-;;;134    	PWM_Out_DeInit();
-000040  f7fffffe          BL       PWM_Out_DeInit
-;;;135    
-;;;136    	PWM_Cap_DeInit();
-000044  f7fffffe          BL       PWM_Cap_DeInit
-;;;137    }
-000048  bd10              POP      {r4,pc}
-;;;138    
+;;;168    {
+;;;169        /* (Note: CNR is 16 bits, so if calculated value is larger than 65536, user should increase prescale value.)
+;;;170             CNR = 0xFFFF
+;;;171             (Note: In capture mode, user should set CNR to 0xFFFF to increase capture frequency range.)
+;;;172    
+;;;173             Capture unit time = 1/Capture clock source frequency/prescaler
+;;;174             20.8ns = 1/48,000,000/1
+;;;175        */
+;;;176    
+;;;177    	/* Set PWM0 channel 2 capture configuration */
+;;;178    	PWM_ConfigCaptureChannel(PWM0, 2, 20, 0);
+000002  4c0a              LDR      r4,|L5.44|
+000004  2300              MOVS     r3,#0
+000006  2214              MOVS     r2,#0x14
+000008  2102              MOVS     r1,#2
+00000a  4620              MOV      r0,r4
+00000c  f7fffffe          BL       PWM_ConfigCaptureChannel
+;;;179    
+;;;180    	/* Enable Timer for PWM0 channel 2 */
+;;;181    	PWM_Start(PWM0, PWM_CH_2_MASK);
+000010  2104              MOVS     r1,#4
+000012  4620              MOV      r0,r4
+000014  f7fffffe          BL       PWM_Start
+;;;182    
+;;;183    	/* Enable Capture Function for PWM0 channel 2 */
+;;;184    	PWM_EnableCapture(PWM0, PWM_CH_2_MASK);
+000018  2104              MOVS     r1,#4
+00001a  4620              MOV      r0,r4
+00001c  f7fffffe          BL       PWM_EnableCapture
+;;;185    
+;;;186    	/* Enable falling capture reload */
+;;;187    	PWM0->CAPCTL |= PWM_CAPCTL_FCRLDEN2_Msk;
+000020  4803              LDR      r0,|L5.48|
+000022  6841              LDR      r1,[r0,#4]
+000024  0442              LSLS     r2,r0,#17
+000026  4311              ORRS     r1,r1,r2
+000028  6041              STR      r1,[r0,#4]
+;;;188    
+;;;189    	/* Wait until PWM0 channel 2 Timer start to count */
+;;;190    //	while((PWM0->CNT[2]) == 0);
+;;;191    
+;;;192    }
+00002a  bd10              POP      {r4,pc}
+;;;193    
                           ENDP
 
-00004a  0000              DCW      0x0000
-                  |L5.76|
+                  |L5.44|
                           DCD      0x40058000
-                  |L5.80|
+                  |L5.48|
                           DCD      0x40058200
 
                           AREA ||i.PWM_Out_DeInit||, CODE, READONLY, ALIGN=2
 
                   PWM_Out_DeInit PROC
-;;;61     
-;;;62     void PWM_Out_DeInit(void)
+;;;114    
+;;;115    void PWM_Out_DeInit(void)
 000000  b510              PUSH     {r4,lr}
-;;;63     {
-;;;64         /* Set PWM0 channel 0 loaded value as 0 */
-;;;65         PWM_Stop(PWM0, PWM_CH_0_MASK);
-000002  4c0a              LDR      r4,|L6.44|
+;;;116    {
+;;;117        /* Set PWM0 channel 0 loaded value as 0 */
+;;;118        PWM_Stop(PWM0, PWM_CH_0_MASK);
+000002  4c07              LDR      r4,|L6.32|
 000004  2101              MOVS     r1,#1
 000006  4620              MOV      r0,r4
 000008  f7fffffe          BL       PWM_Stop
-;;;66     
-;;;67         /* Wait until PWM0 channel 0 Timer Stop */
-;;;68         while((PWM0->CNT[0] & PWM_CNT_CNT_Msk) != 0);
-00000c  4907              LDR      r1,|L6.44|
-00000e  3180              ADDS     r1,r1,#0x80
-                  |L6.16|
-000010  690a              LDR      r2,[r1,#0x10]
-000012  0412              LSLS     r2,r2,#16
-000014  0c12              LSRS     r2,r2,#16
-000016  d1fb              BNE      |L6.16|
-;;;69     
-;;;70         /* Disable Timer for PWM0 channel 0 */
-;;;71         PWM_ForceStop(PWM0, PWM_CH_0_MASK);
-000018  2101              MOVS     r1,#1
-00001a  4620              MOV      r0,r4
-00001c  f7fffffe          BL       PWM_ForceStop
-;;;72     
-;;;73         /* Disable PWM Output path for PWM0 channel 0 */
-;;;74         PWM_DisableOutput(PWM0, PWM_CH_0_MASK);
-000020  2101              MOVS     r1,#1
-000022  4620              MOV      r0,r4
-000024  f7fffffe          BL       PWM_DisableOutput
-;;;75     }
-000028  bd10              POP      {r4,pc}
-;;;76     
+;;;119    
+;;;120        /* Wait until PWM0 channel 0 Timer Stop */
+;;;121    //    while((PWM0->CNT[0] & PWM_CNT_CNT_Msk) != 0);
+;;;122    
+;;;123        /* Disable Timer for PWM0 channel 0 */
+;;;124        PWM_ForceStop(PWM0, PWM_CH_0_MASK);
+00000c  2101              MOVS     r1,#1
+00000e  4620              MOV      r0,r4
+000010  f7fffffe          BL       PWM_ForceStop
+;;;125    
+;;;126        /* Disable PWM Output path for PWM0 channel 0 */
+;;;127        PWM_DisableOutput(PWM0, PWM_CH_0_MASK);
+000014  2101              MOVS     r1,#1
+000016  4620              MOV      r0,r4
+000018  f7fffffe          BL       PWM_DisableOutput
+;;;128    }
+00001c  bd10              POP      {r4,pc}
+;;;129    
                           ENDP
 
-00002a  0000              DCW      0x0000
-                  |L6.44|
+00001e  0000              DCW      0x0000
+                  |L6.32|
                           DCD      0x40058000
 
                           AREA ||i.PWM_Out_Init||, CODE, READONLY, ALIGN=2
 
                   PWM_Out_Init PROC
-;;;76     
-;;;77     void PWM_Out_Init(void)
+;;;129    
+;;;130    void PWM_Out_Init(void)
 000000  b510              PUSH     {r4,lr}
-;;;78     {
-;;;79         /* Set PWM0 channel 0 output configuration */
-;;;80         PWM_ConfigOutputChannel(PWM0, 0, freq, duty);
+;;;131    {
+;;;132        /* Set PWM0 channel 0 output configuration */
+;;;133        PWM_ConfigOutputChannel(PWM0, 0, freq, duty);
 000002  4808              LDR      r0,|L7.36|
 000004  4c08              LDR      r4,|L7.40|
 000006  7803              LDRB     r3,[r0,#0]  ; duty
-000008  8842              LDRH     r2,[r0,#2]  ; freq
+000008  6882              LDR      r2,[r0,#8]  ; freq
 00000a  2100              MOVS     r1,#0
 00000c  4620              MOV      r0,r4
 00000e  f7fffffe          BL       PWM_ConfigOutputChannel
-;;;81     
-;;;82         /* Enable PWM Output path for PWM0 channel 0 */
-;;;83         PWM_EnableOutput(PWM0, PWM_CH_0_MASK);
+;;;134    
+;;;135        /* Enable PWM Output path for PWM0 channel 0 */
+;;;136        PWM_EnableOutput(PWM0, PWM_CH_0_MASK);
 000012  2101              MOVS     r1,#1
 000014  4620              MOV      r0,r4
 000016  f7fffffe          BL       PWM_EnableOutput
-;;;84     
-;;;85         /* Enable Timer for PWM0 channel 0 */
-;;;86         PWM_Start(PWM0, PWM_CH_0_MASK);
+;;;137    
+;;;138        /* Enable Timer for PWM0 channel 0 */
+;;;139        PWM_Start(PWM0, PWM_CH_0_MASK);
 00001a  2101              MOVS     r1,#1
 00001c  4620              MOV      r0,r4
 00001e  f7fffffe          BL       PWM_Start
-;;;87     }
+;;;140    }
 000022  bd10              POP      {r4,pc}
-;;;88     
+;;;141    
                           ENDP
 
                   |L7.36|
-                          DCD      ||area_number.18||
+                          DCD      ||area_number.19||
                   |L7.40|
                           DCD      0x40058000
 
                           AREA ||i.SYS_Init||, CODE, READONLY, ALIGN=2
 
                   SYS_Init PROC
-;;;318    
-;;;319    void SYS_Init(void)
+;;;322    
+;;;323    void SYS_Init(void)
 000000  b570              PUSH     {r4-r6,lr}
 000002  2059              MOVS     r0,#0x59
 000004  4c26              LDR      r4,|L8.160|
@@ -484,81 +470,81 @@
 000010  6823              LDR      r3,[r4,#0]
 000012  2b00              CMP      r3,#0
 000014  d0f9              BEQ      |L8.10|
-;;;320    {
-;;;321        /* Unlock protected registers */
-;;;322        SYS_UnlockReg();
-;;;323    
-;;;324        /* Enable HIRC clock (Internal RC 48MHz) */
-;;;325        CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
+;;;324    {
+;;;325        /* Unlock protected registers */
+;;;326        SYS_UnlockReg();
+;;;327    
+;;;328        /* Enable HIRC clock (Internal RC 48MHz) */
+;;;329        CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
 000016  2004              MOVS     r0,#4
 000018  f7fffffe          BL       CLK_EnableXtalRC
-;;;326    //    CLK_EnableXtalRC(CLK_PWRCTL_HXTEN_Msk);
-;;;327    	
-;;;328        /* Wait for HIRC clock ready */
-;;;329        CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
+;;;330    //    CLK_EnableXtalRC(CLK_PWRCTL_HXTEN_Msk);
+;;;331    	
+;;;332        /* Wait for HIRC clock ready */
+;;;333        CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
 00001c  2010              MOVS     r0,#0x10
 00001e  f7fffffe          BL       CLK_WaitClockReady
-;;;330    //    CLK_WaitClockReady(CLK_STATUS_HXTSTB_Msk);
-;;;331    	
-;;;332        /* Select HCLK clock source as HIRC and HCLK source divider as 1 */
-;;;333        CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC, CLK_CLKDIV0_HCLK(1));
+;;;334    //    CLK_WaitClockReady(CLK_STATUS_HXTSTB_Msk);
+;;;335    	
+;;;336        /* Select HCLK clock source as HIRC and HCLK source divider as 1 */
+;;;337        CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HIRC, CLK_CLKDIV0_HCLK(1));
 000022  2100              MOVS     r1,#0
 000024  2007              MOVS     r0,#7
 000026  f7fffffe          BL       CLK_SetHCLK
-;;;334    
-;;;335        /* Enable UART0 clock */
-;;;336        CLK_EnableModuleClock(UART0_MODULE);
+;;;338    
+;;;339        /* Enable UART0 clock */
+;;;340        CLK_EnableModuleClock(UART0_MODULE);
 00002a  4d1e              LDR      r5,|L8.164|
 00002c  4628              MOV      r0,r5
 00002e  f7fffffe          BL       CLK_EnableModuleClock
-;;;337        CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_PCLK0, CLK_CLKDIV0_UART0(1));
+;;;341        CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_PCLK0, CLK_CLKDIV0_UART0(1));
 000032  2101              MOVS     r1,#1
 000034  2200              MOVS     r2,#0
 000036  0689              LSLS     r1,r1,#26
 000038  4628              MOV      r0,r5
 00003a  f7fffffe          BL       CLK_SetModuleClock
-;;;338    	
-;;;339        CLK_EnableModuleClock(TMR3_MODULE);
+;;;342    	
+;;;343        CLK_EnableModuleClock(TMR3_MODULE);
 00003e  4d1a              LDR      r5,|L8.168|
 000040  4628              MOV      r0,r5
 000042  f7fffffe          BL       CLK_EnableModuleClock
-;;;340        CLK_SetModuleClock(TMR3_MODULE, CLK_CLKSEL1_TMR3SEL_PCLK1, 0);
+;;;344        CLK_SetModuleClock(TMR3_MODULE, CLK_CLKSEL1_TMR3SEL_PCLK1, 0);
 000046  2101              MOVS     r1,#1
 000048  2200              MOVS     r2,#0
 00004a  0549              LSLS     r1,r1,#21
 00004c  4628              MOV      r0,r5
 00004e  f7fffffe          BL       CLK_SetModuleClock
-;;;341    
-;;;342        CLK_EnableModuleClock(PWM0_MODULE);
+;;;345    
+;;;346        CLK_EnableModuleClock(PWM0_MODULE);
 000052  4d16              LDR      r5,|L8.172|
 000054  4628              MOV      r0,r5
 000056  f7fffffe          BL       CLK_EnableModuleClock
-;;;343        CLK_SetModuleClock(PWM0_MODULE, CLK_CLKSEL2_PWM0SEL_PCLK0, 0);
+;;;347        CLK_SetModuleClock(PWM0_MODULE, CLK_CLKSEL2_PWM0SEL_PCLK0, 0);
 00005a  2200              MOVS     r2,#0
 00005c  2101              MOVS     r1,#1
 00005e  4628              MOV      r0,r5
 000060  f7fffffe          BL       CLK_SetModuleClock
-;;;344    
-;;;345        CLK_EnableModuleClock(PDMA_MODULE);	
+;;;348    
+;;;349        CLK_EnableModuleClock(PDMA_MODULE);	
 000064  2001              MOVS     r0,#1
 000066  f7fffffe          BL       CLK_EnableModuleClock
-;;;346    	
-;;;347        /* Reset PWM0 module */
-;;;348        SYS_ResetModule(PWM0_RST);
+;;;350    	
+;;;351        /* Reset PWM0 module */
+;;;352        SYS_ResetModule(PWM0_RST);
 00006a  4811              LDR      r0,|L8.176|
 00006c  f7fffffe          BL       SYS_ResetModule
-;;;349    
-;;;350        /* Reset PDMA module */
-;;;351        SYS_ResetModule(PDMA_RST);
+;;;353    
+;;;354        /* Reset PDMA module */
+;;;355        SYS_ResetModule(PDMA_RST);
 000070  2002              MOVS     r0,#2
 000072  f7fffffe          BL       SYS_ResetModule
-;;;352    	
-;;;353        /* Update System Core Clock */
-;;;354        SystemCoreClockUpdate();
+;;;356    	
+;;;357        /* Update System Core Clock */
+;;;358        SystemCoreClockUpdate();
 000076  f7fffffe          BL       SystemCoreClockUpdate
-;;;355    
-;;;356        /* Set PB multi-function pins for UART0 RXD=PB.12 and TXD=PB.13 */
-;;;357        SYS->GPB_MFPH = (SYS->GPB_MFPH & ~(SYS_GPB_MFPH_PB12MFP_Msk | SYS_GPB_MFPH_PB13MFP_Msk))    |       \
+;;;359    
+;;;360        /* Set PB multi-function pins for UART0 RXD=PB.12 and TXD=PB.13 */
+;;;361        SYS->GPB_MFPH = (SYS->GPB_MFPH & ~(SYS_GPB_MFPH_PB12MFP_Msk | SYS_GPB_MFPH_PB13MFP_Msk))    |       \
 00007a  06a8              LSLS     r0,r5,#26
 00007c  6bc1              LDR      r1,[r0,#0x3c]
 00007e  22ff              MOVS     r2,#0xff
@@ -568,9 +554,9 @@
 000086  0452              LSLS     r2,r2,#17
 000088  1889              ADDS     r1,r1,r2
 00008a  63c1              STR      r1,[r0,#0x3c]
-;;;358                        (SYS_GPB_MFPH_PB12MFP_UART0_RXD | SYS_GPB_MFPH_PB13MFP_UART0_TXD);
-;;;359    
-;;;360        SYS->GPB_MFPL = (SYS->GPB_MFPL & ~(SYS_GPB_MFPL_PB5MFP_Msk | SYS_GPB_MFPL_PB3MFP_Msk)) |
+;;;362                        (SYS_GPB_MFPH_PB12MFP_UART0_RXD | SYS_GPB_MFPH_PB13MFP_UART0_TXD);
+;;;363    
+;;;364        SYS->GPB_MFPL = (SYS->GPB_MFPL & ~(SYS_GPB_MFPL_PB5MFP_Msk | SYS_GPB_MFPL_PB3MFP_Msk)) |
 00008c  6b81              LDR      r1,[r0,#0x38]
 00008e  4a09              LDR      r2,|L8.180|
 000090  4011              ANDS     r1,r1,r2
@@ -579,13 +565,13 @@
 000096  6381              STR      r1,[r0,#0x38]
 000098  2000              MOVS     r0,#0
 00009a  6020              STR      r0,[r4,#0]
-;;;361                        (SYS_GPB_MFPL_PB5MFP_PWM0_CH0 | SYS_GPB_MFPL_PB3MFP_PWM0_CH2);
-;;;362    
-;;;363        /* Lock protected registers */
-;;;364        SYS_LockReg();
-;;;365    }
-00009c  bd70              POP      {r4-r6,pc}
+;;;365                        (SYS_GPB_MFPL_PB5MFP_PWM0_CH0 | SYS_GPB_MFPL_PB3MFP_PWM0_CH2);
 ;;;366    
+;;;367        /* Lock protected registers */
+;;;368        SYS_LockReg();
+;;;369    }
+00009c  bd70              POP      {r4-r6,pc}
+;;;370    
                           ENDP
 
 00009e  0000              DCW      0x0000
@@ -607,11 +593,11 @@
                           AREA ||i.TIMER3_Init||, CODE, READONLY, ALIGN=2
 
                   TIMER3_Init PROC
-;;;206    
-;;;207    void TIMER3_Init(void)
+;;;210    
+;;;211    void TIMER3_Init(void)
 000000  b510              PUSH     {r4,lr}
-;;;208    {
-;;;209        TIMER_Open(TIMER3, TIMER_PERIODIC_MODE, 1000);
+;;;212    {
+;;;213        TIMER_Open(TIMER3, TIMER_PERIODIC_MODE, 1000);
 000002  4c0a              LDR      r4,|L9.44|
 000004  227d              MOVS     r2,#0x7d
 000006  2101              MOVS     r1,#1
@@ -630,12 +616,12 @@
 000022  0589              LSLS     r1,r1,#22
 000024  4308              ORRS     r0,r0,r1
 000026  6020              STR      r0,[r4,#0]
-;;;210        TIMER_EnableInt(TIMER3);
-;;;211        NVIC_EnableIRQ(TMR3_IRQn);	
-;;;212        TIMER_Start(TIMER3);
-;;;213    }
+;;;214        TIMER_EnableInt(TIMER3);
+;;;215        NVIC_EnableIRQ(TMR3_IRQn);	
+;;;216        TIMER_Start(TIMER3);
+;;;217    }
 000028  bd10              POP      {r4,pc}
-;;;214    
+;;;218    
                           ENDP
 
 00002a  0000              DCW      0x0000
@@ -647,58 +633,58 @@
                           AREA ||i.TMR3_IRQHandler||, CODE, READONLY, ALIGN=2
 
                   TMR3_IRQHandler PROC
-;;;189    
-;;;190    void TMR3_IRQHandler(void)
+;;;193    
+;;;194    void TMR3_IRQHandler(void)
 000000  4908              LDR      r1,|L10.36|
 000002  6888              LDR      r0,[r1,#8]
 000004  07c0              LSLS     r0,r0,#31
 000006  0fc0              LSRS     r0,r0,#31
-;;;191    {
+;;;195    {
 000008  d00b              BEQ      |L10.34|
 00000a  2001              MOVS     r0,#1
 00000c  6088              STR      r0,[r1,#8]
-;;;192    //	static uint32_t LOG = 0;
-;;;193    	static uint16_t CNT = 0;
-;;;194    	
-;;;195        if(TIMER_GetIntFlag(TIMER3) == 1)
-;;;196        {
-;;;197            TIMER_ClearIntFlag(TIMER3);
+;;;196    //	static uint32_t LOG = 0;
+;;;197    	static uint16_t CNT = 0;
 ;;;198    	
-;;;199    		if (CNT++ >= 1000)
+;;;199        if(TIMER_GetIntFlag(TIMER3) == 1)
+;;;200        {
+;;;201            TIMER_ClearIntFlag(TIMER3);
+;;;202    	
+;;;203    		if (CNT++ >= 1000)
 00000e  4906              LDR      r1,|L10.40|
-000010  8888              LDRH     r0,[r1,#4]  ; CNT
+000010  8848              LDRH     r0,[r1,#2]  ; CNT
 000012  1c42              ADDS     r2,r0,#1
-000014  808a              STRH     r2,[r1,#4]
+000014  804a              STRH     r2,[r1,#2]
 000016  227d              MOVS     r2,#0x7d
 000018  00d2              LSLS     r2,r2,#3
 00001a  4290              CMP      r0,r2
 00001c  d301              BCC      |L10.34|
-;;;200    		{		
-;;;201    			CNT = 0;
+;;;204    		{		
+;;;205    			CNT = 0;
 00001e  2000              MOVS     r0,#0
-000020  8088              STRH     r0,[r1,#4]
+000020  8048              STRH     r0,[r1,#2]
                   |L10.34|
-;;;202    //        	printf("%s : %4d\r\n",__FUNCTION__,LOG++);
-;;;203    		}		
-;;;204        }
-;;;205    }
+;;;206    //        	printf("%s : %4d\r\n",__FUNCTION__,LOG++);
+;;;207    		}		
+;;;208        }
+;;;209    }
 000022  4770              BX       lr
-;;;206    
+;;;210    
                           ENDP
 
                   |L10.36|
                           DCD      0x40051020
                   |L10.40|
-                          DCD      ||area_number.18||
+                          DCD      ||area_number.19||
 
                           AREA ||i.UART02_IRQHandler||, CODE, READONLY, ALIGN=2
 
                   UART02_IRQHandler PROC
-;;;277    
-;;;278    void UART02_IRQHandler(void)
+;;;281    
+;;;282    void UART02_IRQHandler(void)
 000000  b510              PUSH     {r4,lr}
-;;;279    {
-;;;280        if(UART_GET_INT_FLAG(UART0, UART_INTSTS_RDAINT_Msk | UART_INTSTS_RXTOINT_Msk))     /* UART receive data available flag */
+;;;283    {
+;;;284        if(UART_GET_INT_FLAG(UART0, UART_INTSTS_RDAINT_Msk | UART_INTSTS_RXTOINT_Msk))     /* UART receive data available flag */
 000002  4c0b              LDR      r4,|L11.48|
 000004  69e0              LDR      r0,[r4,#0x1c]
 000006  2111              MOVS     r1,#0x11
@@ -707,35 +693,35 @@
 00000c  d102              BNE      |L11.20|
 00000e  e004              B        |L11.26|
                   |L11.16|
-;;;281        {
-;;;282            while(UART_GET_RX_EMPTY(UART0) == 0)
-;;;283            {
-;;;284                UARTx_Process();
+;;;285        {
+;;;286            while(UART_GET_RX_EMPTY(UART0) == 0)
+;;;287            {
+;;;288                UARTx_Process();
 000010  f7fffffe          BL       UARTx_Process
                   |L11.20|
-000014  69a1              LDR      r1,[r4,#0x18]         ;282
-000016  0449              LSLS     r1,r1,#17             ;282
+000014  69a1              LDR      r1,[r4,#0x18]         ;286
+000016  0449              LSLS     r1,r1,#17             ;286
 000018  d5fa              BPL      |L11.16|
                   |L11.26|
-;;;285            }
-;;;286        }
-;;;287    
-;;;288        if(UART0->FIFOSTS & (UART_FIFOSTS_BIF_Msk | UART_FIFOSTS_FEF_Msk | UART_FIFOSTS_PEF_Msk | UART_FIFOSTS_RXOVIF_Msk))
+;;;289            }
+;;;290        }
+;;;291    
+;;;292        if(UART0->FIFOSTS & (UART_FIFOSTS_BIF_Msk | UART_FIFOSTS_FEF_Msk | UART_FIFOSTS_PEF_Msk | UART_FIFOSTS_RXOVIF_Msk))
 00001a  69a1              LDR      r1,[r4,#0x18]
 00001c  4620              MOV      r0,r4
 00001e  2271              MOVS     r2,#0x71
 000020  4211              TST      r1,r2
 000022  d003              BEQ      |L11.44|
-;;;289        {
-;;;290            UART_ClearIntFlag(UART0, (UART_INTSTS_RLSINT_Msk| UART_INTSTS_BUFERRINT_Msk));
+;;;293        {
+;;;294            UART_ClearIntFlag(UART0, (UART_INTSTS_RLSINT_Msk| UART_INTSTS_BUFERRINT_Msk));
 000024  2109              MOVS     r1,#9
 000026  0289              LSLS     r1,r1,#10
 000028  f7fffffe          BL       UART_ClearIntFlag
                   |L11.44|
-;;;291        }
-;;;292    }
+;;;295        }
+;;;296    }
 00002c  bd10              POP      {r4,pc}
-;;;293    
+;;;297    
                           ENDP
 
 00002e  0000              DCW      0x0000
@@ -750,41 +736,41 @@
                           REQUIRE _printf_d
                           REQUIRE _printf_int_dec
                   UART0_Init PROC
-;;;293    
-;;;294    void UART0_Init(void)
+;;;297    
+;;;298    void UART0_Init(void)
 000000  b510              PUSH     {r4,lr}
-;;;295    {
-;;;296        SYS_ResetModule(UART0_RST);
+;;;299    {
+;;;300        SYS_ResetModule(UART0_RST);
 000002  481e              LDR      r0,|L12.124|
 000004  f7fffffe          BL       SYS_ResetModule
-;;;297    
-;;;298        /* Configure UART0 and set UART0 baud rate */
-;;;299        UART_Open(UART0, 115200);
+;;;301    
+;;;302        /* Configure UART0 and set UART0 baud rate */
+;;;303        UART_Open(UART0, 115200);
 000008  4c1d              LDR      r4,|L12.128|
 00000a  21e1              MOVS     r1,#0xe1
 00000c  0249              LSLS     r1,r1,#9
 00000e  4620              MOV      r0,r4
 000010  f7fffffe          BL       UART_Open
-;;;300    
-;;;301    	/* Set UART receive time-out */
-;;;302    	UART_SetTimeoutCnt(UART0, 20);
+;;;304    
+;;;305    	/* Set UART receive time-out */
+;;;306    	UART_SetTimeoutCnt(UART0, 20);
 000014  2114              MOVS     r1,#0x14
 000016  4620              MOV      r0,r4
 000018  f7fffffe          BL       UART_SetTimeoutCnt
-;;;303    
-;;;304    	UART0->FIFO &= ~UART_FIFO_RFITL_4BYTES;
+;;;307    
+;;;308    	UART0->FIFO &= ~UART_FIFO_RFITL_4BYTES;
 00001c  68a0              LDR      r0,[r4,#8]
 00001e  2110              MOVS     r1,#0x10
 000020  4388              BICS     r0,r0,r1
 000022  60a0              STR      r0,[r4,#8]
-;;;305    	UART0->FIFO |= UART_FIFO_RFITL_8BYTES;
+;;;309    	UART0->FIFO |= UART_FIFO_RFITL_8BYTES;
 000024  68a0              LDR      r0,[r4,#8]
 000026  2120              MOVS     r1,#0x20
 000028  4308              ORRS     r0,r0,r1
 00002a  60a0              STR      r0,[r4,#8]
-;;;306    
-;;;307    	/* Enable UART Interrupt - */
-;;;308    	UART_ENABLE_INT(UART0, UART_INTEN_RDAIEN_Msk | UART_INTEN_TOCNTEN_Msk | UART_INTEN_RXTOIEN_Msk);
+;;;310    
+;;;311    	/* Enable UART Interrupt - */
+;;;312    	UART_ENABLE_INT(UART0, UART_INTEN_RDAIEN_Msk | UART_INTEN_TOCNTEN_Msk | UART_INTEN_RXTOIEN_Msk);
 00002c  6860              LDR      r0,[r4,#4]
 00002e  4915              LDR      r1,|L12.132|
 000030  4308              ORRS     r0,r0,r1
@@ -793,37 +779,37 @@
 000036  4914              LDR      r1,|L12.136|
 000038  0300              LSLS     r0,r0,#12
 00003a  6008              STR      r0,[r1,#0]
-;;;309    	
-;;;310    	NVIC_EnableIRQ(UART02_IRQn);
-;;;311    
-;;;312    	printf("\r\nCLK_GetCPUFreq : %8d\r\n",CLK_GetCPUFreq());
+;;;313    	
+;;;314    	NVIC_EnableIRQ(UART02_IRQn);
+;;;315    
+;;;316    	printf("\r\nCLK_GetCPUFreq : %8d\r\n",CLK_GetCPUFreq());
 00003c  f7fffffe          BL       CLK_GetCPUFreq
 000040  4601              MOV      r1,r0
 000042  a012              ADR      r0,|L12.140|
 000044  f7fffffe          BL       __2printf
-;;;313    	printf("CLK_GetHXTFreq : %8d\r\n",CLK_GetHXTFreq());
+;;;317    	printf("CLK_GetHXTFreq : %8d\r\n",CLK_GetHXTFreq());
 000048  f7fffffe          BL       CLK_GetHXTFreq
 00004c  4601              MOV      r1,r0
 00004e  a016              ADR      r0,|L12.168|
 000050  f7fffffe          BL       __2printf
-;;;314    	printf("CLK_GetLXTFreq : %8d\r\n",CLK_GetLXTFreq());	
+;;;318    	printf("CLK_GetLXTFreq : %8d\r\n",CLK_GetLXTFreq());	
 000054  f7fffffe          BL       CLK_GetLXTFreq
 000058  4601              MOV      r1,r0
 00005a  a019              ADR      r0,|L12.192|
 00005c  f7fffffe          BL       __2printf
-;;;315    	printf("CLK_GetPCLK0Freq : %8d\r\n",CLK_GetPCLK0Freq());
+;;;319    	printf("CLK_GetPCLK0Freq : %8d\r\n",CLK_GetPCLK0Freq());
 000060  f7fffffe          BL       CLK_GetPCLK0Freq
 000064  4601              MOV      r1,r0
 000066  a01c              ADR      r0,|L12.216|
 000068  f7fffffe          BL       __2printf
-;;;316    	printf("CLK_GetPCLK1Freq : %8d\r\n",CLK_GetPCLK1Freq());	
+;;;320    	printf("CLK_GetPCLK1Freq : %8d\r\n",CLK_GetPCLK1Freq());	
 00006c  f7fffffe          BL       CLK_GetPCLK1Freq
 000070  4601              MOV      r1,r0
 000072  a020              ADR      r0,|L12.244|
 000074  f7fffffe          BL       __2printf
-;;;317    }
+;;;321    }
 000078  bd10              POP      {r4,pc}
-;;;318    
+;;;322    
                           ENDP
 
 00007a  0000              DCW      0x0000
@@ -888,216 +874,252 @@
                           AREA ||i.UARTx_Process||, CODE, READONLY, ALIGN=2
 
                   UARTx_Process PROC
-;;;215    
-;;;216    void UARTx_Process(void)
+;;;219    
+;;;220    void UARTx_Process(void)
 000000  b510              PUSH     {r4,lr}
-;;;217    {
-;;;218    	uint8_t res = 0;
-;;;219    	
-;;;220    	res = UART_READ(UART0);
-000002  4820              LDR      r0,|L13.132|
+;;;221    {
+;;;222    	uint8_t res = 0;
+;;;223    	
+;;;224    	res = UART_READ(UART0);
+000002  481f              LDR      r0,|L13.128|
 000004  6800              LDR      r0,[r0,#0]
 000006  b2c0              UXTB     r0,r0
-;;;221    
-;;;222    	if (res == 'x' || res == 'X')
+;;;225    
+;;;226    	if (res == 'x' || res == 'X')
 000008  2878              CMP      r0,#0x78
 00000a  d007              BEQ      |L13.28|
 00000c  2858              CMP      r0,#0x58
 00000e  d005              BEQ      |L13.28|
-;;;223    	{
-;;;224    		NVIC_SystemReset();
-;;;225    	}
-;;;226    
-;;;227    	if (res > 0x7F)
+;;;227    	{
+;;;228    		NVIC_SystemReset();
+;;;229    	}
+;;;230    
+;;;231    	if (res > 0x7F)
 000010  287f              CMP      r0,#0x7f
 000012  d90c              BLS      |L13.46|
-;;;228    	{
-;;;229    		printf("invalid command\r\n");
-000014  a01c              ADR      r0,|L13.136|
+;;;232    	{
+;;;233    		printf("invalid command\r\n");
+000014  a01b              ADR      r0,|L13.132|
 000016  f7fffffe          BL       __2printf
                   |L13.26|
-;;;230    	}
-;;;231    	else
-;;;232    	{
-;;;233    		switch(res)
-;;;234    		{
-;;;235    			case '1':
-;;;236    				duty += 10;
-;;;237    				if ( duty > 90)
-;;;238    				{
-;;;239    					duty = 90;
-;;;240    				}
-;;;241    
-;;;242    				break;
-;;;243    			
-;;;244    			case '2':
-;;;245    				duty -= 10;
-;;;246    
-;;;247    				if ( duty < 10)
-;;;248    				{
-;;;249    					duty = 10;
-;;;250    				}					
-;;;251    			
-;;;252    				break;	
-;;;253    
-;;;254    			case '3':
-;;;255    				freq += 10;
-;;;256    				if ( freq > 10000)
-;;;257    				{
-;;;258    					freq = 10000;
-;;;259    				}
-;;;260    			
-;;;261    				break;
-;;;262    			
-;;;263    			case '4':
-;;;264    				freq -= 10;
-;;;265    
-;;;266    				if ( freq < 250)
-;;;267    				{
-;;;268    					freq = 250;
-;;;269    				}
-;;;270    	
-;;;271    				break;	
-;;;272    				
-;;;273    		}
-;;;274    	}
-;;;275    }
+;;;234    	}
+;;;235    	else
+;;;236    	{
+;;;237    		switch(res)
+;;;238    		{
+;;;239    			case '1':
+;;;240    				duty += 10;
+;;;241    				if ( duty > 90)
+;;;242    				{
+;;;243    					duty = 90;
+;;;244    				}
+;;;245    
+;;;246    				break;
+;;;247    			
+;;;248    			case '2':
+;;;249    				duty -= 10;
+;;;250    
+;;;251    				if ( duty < 10)
+;;;252    				{
+;;;253    					duty = 10;
+;;;254    				}					
+;;;255    			
+;;;256    				break;	
+;;;257    
+;;;258    			case '3':
+;;;259    				freq += 100;
+;;;260    				if ( freq >= 200000)
+;;;261    				{
+;;;262    					freq = 200000;
+;;;263    				}
+;;;264    			
+;;;265    				break;
+;;;266    			
+;;;267    			case '4':
+;;;268    				freq -= 100;
+;;;269    
+;;;270    				if ( freq < 1000)
+;;;271    				{
+;;;272    					freq = 1000;
+;;;273    				}
+;;;274    	
+;;;275    				break;	
+;;;276    				
+;;;277    		}
+;;;278    	}
+;;;279    }
 00001a  bd10              POP      {r4,pc}
                   |L13.28|
 00001c  f3bf8f4f          DSB      
-000020  491f              LDR      r1,|L13.160|
-000022  481e              LDR      r0,|L13.156|
+000020  491e              LDR      r1,|L13.156|
+000022  481d              LDR      r0,|L13.152|
 000024  60c8              STR      r0,[r1,#0xc]
 000026  f3bf8f4f          DSB      
                   |L13.42|
 00002a  bf00              NOP      
 00002c  e7fd              B        |L13.42|
                   |L13.46|
-00002e  491d              LDR      r1,|L13.164|
-000030  2831              CMP      r0,#0x31              ;233
-000032  780a              LDRB     r2,[r1,#0]            ;236
+00002e  491c              LDR      r1,|L13.160|
+000030  2831              CMP      r0,#0x31              ;237
+000032  780a              LDRB     r2,[r1,#0]            ;240
 000034  d00f              BEQ      |L13.86|
-000036  2832              CMP      r0,#0x32              ;233
+000036  2832              CMP      r0,#0x32              ;237
 000038  d014              BEQ      |L13.100|
-00003a  460a              MOV      r2,r1                 ;236
-00003c  8852              LDRH     r2,[r2,#2]            ;255
-00003e  2833              CMP      r0,#0x33              ;233
+00003a  460a              MOV      r2,r1                 ;240
+00003c  6892              LDR      r2,[r2,#8]            ;259
+00003e  2833              CMP      r0,#0x33              ;237
 000040  d018              BEQ      |L13.116|
-000042  2834              CMP      r0,#0x34              ;233
+000042  2834              CMP      r0,#0x34              ;237
 000044  d1e9              BNE      |L13.26|
-000046  3a0a              SUBS     r2,r2,#0xa            ;233
-000048  b290              UXTH     r0,r2                 ;264
-00004a  8048              STRH     r0,[r1,#2]            ;264
-00004c  28fa              CMP      r0,#0xfa              ;266
-00004e  d2e4              BCS      |L13.26|
-000050  20fa              MOVS     r0,#0xfa              ;268
-000052  8048              STRH     r0,[r1,#2]            ;268
+000046  3a64              SUBS     r2,r2,#0x64           ;237
+000048  207d              MOVS     r0,#0x7d              ;270
+00004a  00c0              LSLS     r0,r0,#3              ;270
+00004c  608a              STR      r2,[r1,#8]            ;270  ; freq
+00004e  4282              CMP      r2,r0                 ;270
+000050  d2e3              BCS      |L13.26|
+                  |L13.82|
+000052  6088              STR      r0,[r1,#8]            ;272  ; freq
                   |L13.84|
 000054  bd10              POP      {r4,pc}
                   |L13.86|
 000056  320a              ADDS     r2,r2,#0xa
-000058  b2d0              UXTB     r0,r2                 ;236
-00005a  7008              STRB     r0,[r1,#0]            ;236
-00005c  285a              CMP      r0,#0x5a              ;237
+000058  b2d0              UXTB     r0,r2                 ;240
+00005a  7008              STRB     r0,[r1,#0]            ;240
+00005c  285a              CMP      r0,#0x5a              ;241
 00005e  d9f9              BLS      |L13.84|
-000060  205a              MOVS     r0,#0x5a              ;239
+000060  205a              MOVS     r0,#0x5a              ;243
 000062  e005              B        |L13.112|
                   |L13.100|
-000064  3a0a              SUBS     r2,r2,#0xa            ;239
-000066  b2d0              UXTB     r0,r2                 ;245
-000068  7008              STRB     r0,[r1,#0]            ;245
-00006a  280a              CMP      r0,#0xa               ;247
+000064  3a0a              SUBS     r2,r2,#0xa            ;243
+000066  b2d0              UXTB     r0,r2                 ;249
+000068  7008              STRB     r0,[r1,#0]            ;249
+00006a  280a              CMP      r0,#0xa               ;251
 00006c  d2f2              BCS      |L13.84|
-00006e  200a              MOVS     r0,#0xa               ;249
+00006e  200a              MOVS     r0,#0xa               ;253
                   |L13.112|
-000070  7008              STRB     r0,[r1,#0]            ;249
-                  |L13.114|
+000070  7008              STRB     r0,[r1,#0]            ;253
 000072  bd10              POP      {r4,pc}
                   |L13.116|
-000074  320a              ADDS     r2,r2,#0xa
-000076  b290              UXTH     r0,r2                 ;255
-000078  4a0b              LDR      r2,|L13.168|
-00007a  8048              STRH     r0,[r1,#2]            ;255
-00007c  4290              CMP      r0,r2                 ;256
-00007e  d9f8              BLS      |L13.114|
-000080  804a              STRH     r2,[r1,#2]            ;258
-000082  bd10              POP      {r4,pc}
-;;;276    
+000074  3264              ADDS     r2,r2,#0x64
+000076  480b              LDR      r0,|L13.164|
+000078  608a              STR      r2,[r1,#8]            ;260  ; freq
+00007a  4282              CMP      r2,r0                 ;260
+00007c  d2e9              BCS      |L13.82|
+00007e  bd10              POP      {r4,pc}
+;;;280    
                           ENDP
 
-                  |L13.132|
+                  |L13.128|
                           DCD      0x40070000
-                  |L13.136|
-000088  696e7661          DCB      "invalid command\r\n",0
-00008c  6c696420
-000090  636f6d6d
-000094  616e640d
-000098  0a00    
-00009a  00                DCB      0
-00009b  00                DCB      0
-                  |L13.156|
+                  |L13.132|
+000084  696e7661          DCB      "invalid command\r\n",0
+000088  6c696420
+00008c  636f6d6d
+000090  616e640d
+000094  0a00    
+000096  00                DCB      0
+000097  00                DCB      0
+                  |L13.152|
                           DCD      0x05fa0004
-                  |L13.160|
+                  |L13.156|
                           DCD      0xe000ed00
+                  |L13.160|
+                          DCD      ||area_number.19||
                   |L13.164|
-                          DCD      ||area_number.18||
-                  |L13.168|
-                          DCD      0x00002710
+                          DCD      0x00030d40
 
-                          AREA ||i.main||, CODE, READONLY, ALIGN=1
+                          AREA ||i.main||, CODE, READONLY, ALIGN=2
 
                   main PROC
-;;;374    
-;;;375    int main()
-000000  f7fffffe          BL       SYS_Init
-;;;376    {
-;;;377        SYS_Init();
 ;;;378    
-;;;379        UART0_Init();
-000004  f7fffffe          BL       UART0_Init
-;;;380    
-;;;381    	TIMER3_Init();
-000008  f7fffffe          BL       TIMER3_Init
-                  |L14.12|
+;;;379    int main()
+000000  f7fffffe          BL       SYS_Init
+;;;380    {
+;;;381        SYS_Init();
 ;;;382    
-;;;383    	/*
-;;;384    		capture : PWM0 channel 2(PB.3)
-;;;385    		output : PWM0 channel 0(PB.5)
-;;;386    	*/
-;;;387    	
-;;;388        /* Got no where to go, just loop forever */
-;;;389        while(1)
-;;;390        {
+;;;383        UART0_Init();
+000004  f7fffffe          BL       UART0_Init
+;;;384    
+;;;385    	TIMER3_Init();
+000008  f7fffffe          BL       TIMER3_Init
+;;;386    
+;;;387    	/*
+;;;388    		capture : PWM0 channel 2(PB.3)
+;;;389    		output : PWM0 channel 0(PB.5)
+;;;390    	*/
 ;;;391    	
-;;;392    		PWM_Out_Init();	
-00000c  f7fffffe          BL       PWM_Out_Init
-;;;393    
-;;;394    		PWM_Cap_Init();
-000010  f7fffffe          BL       PWM_Cap_Init
-000014  e7fa              B        |L14.12|
-;;;395        }
-;;;396    }
-;;;397    
+;;;392        /* Got no where to go, just loop forever */
+;;;393        while(1)
+;;;394        {	
+;;;395    		PWM_Out_Init();	
+;;;396    
+;;;397    		PWM_Cap_Init();
+;;;398    
+;;;399    		PDMA_Init();
+;;;400    
+;;;401    		/* Capture the Input Waveform Data */
+;;;402    		CalPeriodTime(PWM0, 2);
+00000c  4c07              LDR      r4,|L14.44|
+                  |L14.14|
+00000e  f7fffffe          BL       PWM_Out_Init
+000012  f7fffffe          BL       PWM_Cap_Init
+000016  f7fffffe          BL       PDMA_Init
+00001a  2102              MOVS     r1,#2
+00001c  4620              MOV      r0,r4
+00001e  f7fffffe          BL       CalPeriodTime
+;;;403    
+;;;404    		PWM_Out_DeInit();
+000022  f7fffffe          BL       PWM_Out_DeInit
+;;;405    
+;;;406    		PWM_Cap_DeInit();
+000026  f7fffffe          BL       PWM_Cap_DeInit
+00002a  e7f0              B        |L14.14|
+;;;407    		
+;;;408        }
+;;;409    }
+;;;410    
                           ENDP
 
+                  |L14.44|
+                          DCD      0x40058000
+
+                          AREA ||.conststring||, DATA, READONLY, MERGE=1, STRINGS, ALIGN=2
+
+000000  52697369          DCB      "Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total=%5d,Freq="
+000004  6e673d25
+000008  35642c46
+00000c  616c6c69
+000010  6e673d25
+000014  35642c48
+000018  6967683d
+00001c  2535642c
+000020  4c6f773d
+000024  2535642c
+000028  546f7461
+00002c  6c3d2535
+000030  642c4672
+000034  65713d  
+000037  2535642c          DCB      "%5d,Duty=%3d.\r\n",0
+00003b  44757479
+00003f  3d253364
+000043  2e0d0a00
 
                           AREA ||.data||, DATA, ALIGN=0
 
                   BitFlag
 000000  00                DCB      0x00
 
-                          AREA ||area_number.18||, DATA, ALIGN=2
+                          AREA ||area_number.19||, DATA, ALIGN=2
 
-                          EXPORTAS ||area_number.18||, ||.data||
+                          EXPORTAS ||area_number.19||, ||.data||
                   duty
 000000  1e00              DCB      0x1e,0x00
-                  freq
-000002  00fa              DCW      0x00fa
                   ||CNT||
-000004  0000              DCW      0x0000
-000006  0000              DCB      0x00,0x00
+000002  0000              DCW      0x0000
                   g_u32IsTestOver
                           DCD      0x00000000
+                  freq
+                          DCD      0x000186a0
                   g_au16Count
 00000c  0000              DCW      0x0000
 00000e  0000              DCB      0x00,0x00

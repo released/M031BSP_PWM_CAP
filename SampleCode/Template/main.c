@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "NuMicro.h"
 
+#define SYS_CLOCK       							(48000000)
 
 typedef enum{
 	flag_PDMA_Abort = 0 ,
@@ -29,111 +30,35 @@ uint8_t BitFlag = 0;
 uint16_t g_au16Count[4] = {0};
 volatile uint32_t g_u32IsTestOver = 0;
 uint8_t duty = 30 ;
-uint16_t freq = 250 ;
-void PDMA_Init(void);
+uint32_t freq = 100000 ;
 
 void CalPeriodTime(PWM_T *PWM, uint32_t u32Ch)
 {
     uint16_t u16RisingTime, u16FallingTime, u16HighPeriod, u16LowPeriod, u16TotalPeriod;
 
     g_u32IsTestOver = 0;
+	
     /* Wait PDMA interrupt (g_u32IsTestOver will be set at IRQ_Handler function) */
     while(g_u32IsTestOver == 0);
-
+		 
     u16RisingTime = g_au16Count[1];
 
     u16FallingTime = g_au16Count[0];
 
-    u16HighPeriod = g_au16Count[1] - g_au16Count[2];
+    u16HighPeriod = g_au16Count[1] - g_au16Count[2] + 1;
 
-    u16LowPeriod = 0x10000 - g_au16Count[1];
+    u16LowPeriod = 0xFFFF - g_au16Count[1];
 
-    u16TotalPeriod = 0x10000 - g_au16Count[2];
+    u16TotalPeriod = 0xFFFF - g_au16Count[2] + 1;
 
-    printf("Capture : Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total=%5d.\r\n",
+    printf("Rising=%5d,Falling=%5d,High=%5d,Low=%5d,Total=%5d,Freq=%5d,Duty=%3d.\r\n",
            u16RisingTime, 
            u16FallingTime, 
            u16HighPeriod, 
            u16LowPeriod, 
-           u16TotalPeriod);
-
-}
-
-void PWM_Out_DeInit(void)
-{
-    /* Set PWM0 channel 0 loaded value as 0 */
-    PWM_Stop(PWM0, PWM_CH_0_MASK);
-
-    /* Wait until PWM0 channel 0 Timer Stop */
-    while((PWM0->CNT[0] & PWM_CNT_CNT_Msk) != 0);
-
-    /* Disable Timer for PWM0 channel 0 */
-    PWM_ForceStop(PWM0, PWM_CH_0_MASK);
-
-    /* Disable PWM Output path for PWM0 channel 0 */
-    PWM_DisableOutput(PWM0, PWM_CH_0_MASK);
-}
-
-void PWM_Out_Init(void)
-{
-    /* Set PWM0 channel 0 output configuration */
-    PWM_ConfigOutputChannel(PWM0, 0, freq, duty);
-
-    /* Enable PWM Output path for PWM0 channel 0 */
-    PWM_EnableOutput(PWM0, PWM_CH_0_MASK);
-
-    /* Enable Timer for PWM0 channel 0 */
-    PWM_Start(PWM0, PWM_CH_0_MASK);
-}
-
-void PWM_Cap_DeInit(void)
-{
-    /* Set loaded value as 0 for PWM0 channel 2 */
-    PWM_Stop(PWM0, PWM_CH_2_MASK);
-
-    /* Wait until PWM0 channel 2 current counter reach to 0 */
-    while((PWM0->CNT[2] & PWM_CNT_CNT_Msk) != 0);
-
-    /* Disable Timer for PWM0 channel 2 */
-    PWM_ForceStop(PWM0, PWM_CH_2_MASK);
-
-    /* Disable Capture Function and Capture Input path for  PWM0 channel 2*/
-    PWM_DisableCapture(PWM0, PWM_CH_2_MASK);
-
-    /* Clear Capture Interrupt flag for PWM0 channel 2 */
-    PWM_ClearCaptureIntFlag(PWM0, 2, PWM_CAPTURE_INT_FALLING_LATCH);
-
-    /* Disable PDMA NVIC */
-    NVIC_DisableIRQ(PDMA_IRQn);
-
-    PDMA_Close(PDMA);
-}
-
-void PWM_Cap_Init(void)
-{
-	PDMA_Init();
-
-	/* Set PWM0 channel 2 capture configuration */
-	PWM_ConfigCaptureChannel(PWM0, 2, 62, 0);
-
-	/* Enable Timer for PWM0 channel 2 */
-	PWM_Start(PWM0, PWM_CH_2_MASK);
-
-	/* Enable Capture Function for PWM0 channel 2 */
-	PWM_EnableCapture(PWM0, PWM_CH_2_MASK);
-
-	/* Enable falling capture reload */
-	PWM0->CAPCTL |= PWM_CAPCTL_FCRLDEN2_Msk;
-
-	/* Wait until PWM0 channel 2 Timer start to count */
-	while((PWM0->CNT[2]) == 0);
-
-	/* Capture the Input Waveform Data */
-	CalPeriodTime(PWM0, 2);
-
-	PWM_Out_DeInit();
-
-	PWM_Cap_DeInit();
+           u16TotalPeriod,
+           SYS_CLOCK/u16TotalPeriod,
+           u16HighPeriod*100/u16TotalPeriod);
 }
 
 void PDMA_IRQHandler(void)
@@ -186,6 +111,85 @@ void PDMA_Init(void)
     PWM_EnablePDMA(PWM0, 2, FALSE, PWM_CAPTURE_PDMA_RISING_FALLING_LATCH);
 }
 
+
+void PWM_Out_DeInit(void)
+{
+    /* Set PWM0 channel 0 loaded value as 0 */
+    PWM_Stop(PWM0, PWM_CH_0_MASK);
+
+    /* Wait until PWM0 channel 0 Timer Stop */
+//    while((PWM0->CNT[0] & PWM_CNT_CNT_Msk) != 0);
+
+    /* Disable Timer for PWM0 channel 0 */
+    PWM_ForceStop(PWM0, PWM_CH_0_MASK);
+
+    /* Disable PWM Output path for PWM0 channel 0 */
+    PWM_DisableOutput(PWM0, PWM_CH_0_MASK);
+}
+
+void PWM_Out_Init(void)
+{
+    /* Set PWM0 channel 0 output configuration */
+    PWM_ConfigOutputChannel(PWM0, 0, freq, duty);
+
+    /* Enable PWM Output path for PWM0 channel 0 */
+    PWM_EnableOutput(PWM0, PWM_CH_0_MASK);
+
+    /* Enable Timer for PWM0 channel 0 */
+    PWM_Start(PWM0, PWM_CH_0_MASK);
+}
+
+void PWM_Cap_DeInit(void)
+{
+    /* Set loaded value as 0 for PWM0 channel 2 */
+    PWM_Stop(PWM0, PWM_CH_2_MASK);
+
+    /* Wait until PWM0 channel 2 current counter reach to 0 */
+//    while((PWM0->CNT[2] & PWM_CNT_CNT_Msk) != 0);
+
+    /* Disable Timer for PWM0 channel 2 */
+    PWM_ForceStop(PWM0, PWM_CH_2_MASK);
+
+    /* Disable Capture Function and Capture Input path for  PWM0 channel 2*/
+    PWM_DisableCapture(PWM0, PWM_CH_2_MASK);
+
+    /* Clear Capture Interrupt flag for PWM0 channel 2 */
+    PWM_ClearCaptureIntFlag(PWM0, 2, PWM_CAPTURE_INT_FALLING_LATCH);
+
+	PWM_DisablePDMA(PWM0, 2);
+
+    /* Disable PDMA NVIC */
+    NVIC_DisableIRQ(PDMA_IRQn);
+
+    PDMA_Close(PDMA);
+}
+
+void PWM_Cap_Init(void)
+{
+    /* (Note: CNR is 16 bits, so if calculated value is larger than 65536, user should increase prescale value.)
+         CNR = 0xFFFF
+         (Note: In capture mode, user should set CNR to 0xFFFF to increase capture frequency range.)
+
+         Capture unit time = 1/Capture clock source frequency/prescaler
+         20.8ns = 1/48,000,000/1
+    */
+
+	/* Set PWM0 channel 2 capture configuration */
+	PWM_ConfigCaptureChannel(PWM0, 2, 20, 0);
+
+	/* Enable Timer for PWM0 channel 2 */
+	PWM_Start(PWM0, PWM_CH_2_MASK);
+
+	/* Enable Capture Function for PWM0 channel 2 */
+	PWM_EnableCapture(PWM0, PWM_CH_2_MASK);
+
+	/* Enable falling capture reload */
+	PWM0->CAPCTL |= PWM_CAPCTL_FCRLDEN2_Msk;
+
+	/* Wait until PWM0 channel 2 Timer start to count */
+//	while((PWM0->CNT[2]) == 0);
+
+}
 
 void TMR3_IRQHandler(void)
 {
@@ -251,19 +255,19 @@ void UARTx_Process(void)
 				break;	
 
 			case '3':
-				freq += 10;
-				if ( freq > 10000)
+				freq += 100;
+				if ( freq >= 200000)
 				{
-					freq = 10000;
+					freq = 200000;
 				}
 			
 				break;
 			
 			case '4':
-				freq -= 10;
-				if ( freq < 250)
+				freq -= 100;
+				if ( freq < 1000)
 				{
-					freq = 250;
+					freq = 1000;
 				}
 	
 				break;	
@@ -385,11 +389,20 @@ int main()
 	
     /* Got no where to go, just loop forever */
     while(1)
-    {
-	
+    {	
 		PWM_Out_Init();	
 
 		PWM_Cap_Init();
+
+		PDMA_Init();
+
+		/* Capture the Input Waveform Data */
+		CalPeriodTime(PWM0, 2);
+
+		PWM_Out_DeInit();
+
+		PWM_Cap_DeInit();
+		
     }
 }
 
